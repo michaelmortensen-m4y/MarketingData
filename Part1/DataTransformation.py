@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Mar  1 20:44:30 2020
-
-@author: anjaeh
-"""
 
 #Enable python to go into parent folder to open helper.py file
 import sys
@@ -68,7 +62,5 @@ EduDict.update(unknown = Key_unknown)
 Edu_vector = np.asarray([EduDict[value] for value in marketingData_Edu])
 marketingData_np_int[:,3] = Edu_vector
 marketingData_np_outofK[:,1] = Edu_vector
-
-
 
 
