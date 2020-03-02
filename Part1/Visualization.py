@@ -1,3 +1,6 @@
+#Enable python to go into parent folder to open helper.py file
+import sys
+sys.path.insert(1,'..')
 
 from helper import *
 import matplotlib.pyplot as plt
