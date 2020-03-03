@@ -69,3 +69,6 @@ def encodeCategorical(marketingData_pd, ordinals=None, nominals=None):
 
     return attNamesEncoded, marketingData_pd, marketingData_np
 
+
+def get_cmap(n, name='hsv'): # Get n destinct colors
+    return plt.cm.get_cmap(name, n)
