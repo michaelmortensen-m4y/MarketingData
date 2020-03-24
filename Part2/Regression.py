@@ -31,13 +31,16 @@ nominals = [
     "contact",
     "month",
     "day_of_week",
-    "poutcome"
+    "poutcome",
+    "y"
 ]
 
 attNamesEncoded, marketingDataEncoded_pd, marketingDataEncoded_np = encodeCategorical(marketingData_pd, ordinals=ordinals, nominals=nominals)
 
-# Select attribute to predict (selecting attributes to consider for model setup can be done later using cross validation)
+# Select attribute to predict (y)
 attToPredictId = attNamesEncoded.index("age")
+
+# Select attributes for the model (X)
 attIdsForModel = list(range(len(attNamesEncoded)))
 attIdsForModel.remove(attToPredictId)
 
@@ -50,5 +53,12 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=testSize, ra
 
 print("\nComputing linear regression model:")
 
+# Fit linear regression model
 model = lm.LinearRegression()
-model = model.fit(X,y)
+model = model.fit(X_train, y_train)
+
+# Try to predict on the test set
+y_predicted = model.predict(X_test)
+
+for y_idx, y_p in enumerate(y_predicted):
+    print(f"Predicted {y_p} where true value is {y_test[y_idx]}")
