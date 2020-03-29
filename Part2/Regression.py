@@ -40,7 +40,7 @@ attNamesEncoded, marketingDataEncoded_pd, marketingDataEncoded_np = encodeCatego
 # Select attribute to predict (y)
 attToPredictId = attNamesEncoded.index("age")
 
-# Select attributes for the model (X)
+# Select attributes for the model (X) (all except y for now)
 attIdsForModel = list(range(len(attNamesEncoded)))
 attIdsForModel.remove(attToPredictId)
 
