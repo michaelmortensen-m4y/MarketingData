@@ -23,4 +23,14 @@ def errorRate(y_est, y_true):
     """calculates misclassification rate"""
     error_test = np.sum(y_est != y_true) / float(len(y_true))
     
-    return error_test
+    y_est = np.asarray(y_est)
+    y_true = np.asarray(y_true)
+    
+    False_positive = float(len(y_est[np.logical_and(y_est == 1, y_true == 0)] ))
+    False_negative = float(len(y_est[np.logical_and(y_est == 0, y_true == 1)]))
+    true_positive = float(len(y_est[np.logical_and(y_est == 1, y_true == 1)]))
+    true_negative = float(len(y_est[np.logical_and(y_est == 0, y_true == 0)]))
+    true_positive_rate = true_positive/(true_positive + False_negative)
+    false_positive_rate = False_positive/(False_positive + true_negative)
+    
+    return error_test, true_positive_rate, false_positive_rate
