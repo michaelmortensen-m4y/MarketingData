@@ -19,6 +19,8 @@ import matplotlib.pyplot as plt
 #import sklearn.linear_model as lm
 #imports for decision tree and graphviz plotting
 from sklearn import tree, model_selection
+from sklearn.neighbors import KNeighborsClassifier, DistanceMetric
+from sklearn.metrics import confusion_matrix
 #from platform import system
 #from toolbox_02450 import windows_graphviz_call
 from matplotlib.image import imread
@@ -59,9 +61,9 @@ X_full = X_full*(1/np.std(X_full,0)) #Deviding by standard deviation to normaliz
 N, M = X_full.shape
 
 # Add offset attribute
-X_full = np.concatenate((np.ones((X_full.shape[0],1)),X_full),1)
-attNamesEncoded = [u'Offset']+attNamesEncoded
-M = M+1
+#X_full = np.concatenate((np.ones((X_full.shape[0],1)),X_full),1)
+#attNamesEncoded = [u'Offset']+attNamesEncoded
+#M = M+1
 
 ## Outer Crossvalidation
 # Create crossvalidation partition for evaluation
@@ -82,17 +84,17 @@ criterion =['gini', 'entropy']
 
 
 #nearest neighbor
-neighbor = np.arange(1,20,2)
+neighbor = np.arange(1,5)
 
 #Initialize errors
 # Final error rates stored for the table
 
-Error_test = np.empty((K,5))
+Error_test = np.empty((K,10))
 #Other Error measures
-False_Positive_Rate = np.empty((K,5))
-True_Positive_Rate = np.empty((K,5))
+False_Positive_Rate = np.empty((K,10))
+True_Positive_Rate = np.empty((K,10))
 #Intermediate calculated for model selection
-Error_gen = np.empty((1, 5))
+Error_gen = np.empty((1, 10))
 
 k=0
 for train_index, test_index in CV_outer.split(X_full,y):
@@ -103,6 +105,7 @@ for train_index, test_index in CV_outer.split(X_full,y):
     X_test = X_full[test_index]
     y_test = y[test_index]
     N_par, M_par = X_train.shape
+    N_test, M_test = X_test.shape
     #CV_inner = model_selection.KFold(K, shuffle = True)
     
     #baseline model
@@ -115,34 +118,63 @@ for train_index, test_index in CV_outer.split(X_full,y):
    # validation_error_log = np.empty((K,len(lambdas)))
     #validation_error_lasso = np.empty((K,len(lambdas)))  
     
-    dtc_1 = tree.DecisionTreeClassifier(criterion='gini', min_samples_split=100, max_depth = 40)
-    dtc_1 = dtc_1.fit(X_train,y_train)
-    y_est = dtc_1.predict(X_test)
-    Error_test[k,1], True_Positive_Rate[k,1], False_Positive_Rate[k,1] = errorRate(y_est, y_test)
+    dist=2
+    metric = 'minkowski'
+    metric_params = {} # no parameters needed for minkowski
     
-    dtc_2 = tree.DecisionTreeClassifier(criterion='gini', min_samples_split=200, max_depth = 40)
-    dtc_2 = dtc_2.fit(X_train,y_train)
-    y_est = dtc_2.predict(X_test)
-    Error_test[k,2], True_Positive_Rate[k,2], False_Positive_Rate[k,2] = errorRate(y_est, y_test)
+    # You can set the metric argument to 'cosine' to determine the cosine distance
+    #metric = 'cosine' 
+    #metric_params = {} # no parameters needed for cosine
+    
+    # To use a mahalonobis distance, we need to input the covariance matrix, too:
+    #metric='mahalanobis'
+    #metric_params={'V': np.cov(X_train, rowvar=False)}
+    
+    # Fit classifier and classify the test points
+    for n,i in zip(neighbor, range(1,5)):
+        knclassifier = KNeighborsClassifier(n_neighbors=n, p=dist, 
+                                        metric=metric,
+                                        metric_params=metric_params)
+        knclassifier.fit(X_train, y_train)
+        y_est = knclassifier.predict(X_test)
+        Error_test[k,i], True_Positive_Rate[k,i], False_Positive_Rate[k,i] = errorRate(y_est, y_test)
+    
+
+
     
     dtc_3 = tree.DecisionTreeClassifier(criterion='gini', min_samples_split=10, max_depth = 40)
     dtc_3 = dtc_3.fit(X_train,y_train)
     y_est = dtc_3.predict(X_test)
-    Error_test[k,3], True_Positive_Rate[k,3], False_Positive_Rate[k,3] = errorRate(y_est, y_test)
+    Error_test[k,5], True_Positive_Rate[k,5], False_Positive_Rate[k,5] = errorRate(y_est, y_test)
     
     
-    dtc_4 = tree.DecisionTreeClassifier(criterion='gini', min_samples_split=50, max_depth = 40)
-    dtc_4 = dtc_4.fit(X_train,y_train)
-    y_est = dtc_4.predict(X_test)
-    Error_test[k,4], True_Positive_Rate[k,4], False_Positive_Rate[k,4] = errorRate(y_est, y_test)
+   
 
     k+=1
 
-for n in range(0, 5):
-    Error_gen[0,n] =  np.sum(N_par/N*Error_test[:,n])
+for n in range(0, 6):
+    Error_gen[0,n] =  np.sum(N_test/N*Error_test[:,n])
 
 
-    
+    # Plot the classfication results
+styles = ['ob', 'or', 'og', 'oy']
+for c in range(C):
+    class_mask = (y_est==c)
+    plt.plot(X_test[class_mask,0], X_test[class_mask,1], styles[c], markersize=10)
+    plt.plot(X_test[class_mask,0], X_test[class_mask,1], 'kx', markersize=8)
+plt.title('Synthetic data classification - KNN');
+
+# Compute and plot confusion matrix
+cm = confusion_matrix(y_test, y_est);
+accuracy = 100*cm.diagonal().sum()/cm.sum(); error_rate = 100-accuracy;
+plt.figure(2);
+plt.imshow(cm, cmap='binary', interpolation='None');
+plt.colorbar()
+plt.xticks(range(C)); plt.yticks(range(C));
+plt.xlabel('Predicted class'); plt.ylabel('Actual class');
+plt.title('Confusion matrix (Accuracy: {0}%, Error Rate: {1}%)'.format(accuracy, error_rate));
+
+plt.show()
     
   
     

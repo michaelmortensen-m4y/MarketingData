@@ -118,7 +118,7 @@ for train_index, test_index in CV_outer.split(X_full,y):
         #logistic regression
         for n in range(0, len(lambdas)):
             
-            log_reg = lm.LogisticRegression(penalty='l2', C=1/lambdas[n], max_iter = 200 )
+            log_reg = lm.LogisticRegression(penalty='l2', C=1/lambdas[n], max_iter = 200, class_weight = 'balanced' )
             log_reg.fit(X_train_in, y_train_in)
 
             #y_train_est = log_reg.predict(X_train_in).T
@@ -134,7 +134,7 @@ for train_index, test_index in CV_outer.split(X_full,y):
         for n in range(0, len(lambdas)):
             
             log_lasso = lm.LogisticRegression(penalty='l1', C=1/lambdas[n], max_iter = 200,
-                                            solver = 'liblinear')
+                                            solver = 'liblinear', class_weight = 'balanced')
             log_lasso.fit(X_train_in, y_train_in)
 
             #y_train_est = log_reg.predict(X_train_in).T
@@ -157,7 +157,7 @@ for train_index, test_index in CV_outer.split(X_full,y):
     
     #Train LogReg model with selected lambda on outer training data loop
     
-    log_reg = lm.LogisticRegression(penalty='l2', C=1/lambda_opt_all[k,0], max_iter =200)
+    log_reg = lm.LogisticRegression(penalty='l2', C=1/lambda_opt_all[k,0], max_iter =200, class_weight = 'balanced')
     log_reg.fit(X_train, y_train)
     y_est = log_reg.predict(X_test).T
     
@@ -175,7 +175,7 @@ for train_index, test_index in CV_outer.split(X_full,y):
     #Train Lasso model with selected lambda on outer training data loop
        
     log_lasso = lm.LogisticRegression(penalty='l1', C=1/lambda_opt_all[k,1], max_iter =200,
-                                      solver = 'liblinear')
+                                      solver = 'liblinear', class_weight = 'balanced')
     log_lasso.fit(X_train, y_train)
     y_est = log_lasso.predict(X_test).T
      #Error rate for optimal Lasso model for outer loop
