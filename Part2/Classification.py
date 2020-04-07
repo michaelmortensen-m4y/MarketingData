@@ -109,7 +109,7 @@ for train_index, test_index in CV_outer.split(X_full,y):
         #logistic regression
         for n in range(0, len(lambdas)):
             
-            log_reg = lm.LogisticRegression(penalty='l2', C=1/lambdas[n], max_iter = 1000 )
+            log_reg = lm.LogisticRegression(penalty='l2', C=1/lambdas[n], max_iter = 500 )
             log_reg.fit(X_train_in, y_train_in)
 
             #y_train_est = log_reg.predict(X_train_in).T
@@ -122,12 +122,15 @@ for train_index, test_index in CV_outer.split(X_full,y):
         opt_lambda_idx = np.argmin(inner_error_rate)
         opt_lambda = lambdas[opt_lambda_idx]
         
+        #Feature selection for logisitic regression
+        
+        
         j +=1
     ### Back to outer loop for training of selected model and test error estimation ###
     
     #Train LogReg model with selected lambda on outer training data loop
     lambda_opt_all[k] = opt_lambda
-    log_reg = lm.LogisticRegression(penalty='l2', C=1/opt_lambda, max_iter =1000)
+    log_reg = lm.LogisticRegression(penalty='l2', C=1/opt_lambda, max_iter =500)
     log_reg.fit(X_train, y_train)
     y_est = log_reg.predict(X_test).T
     
