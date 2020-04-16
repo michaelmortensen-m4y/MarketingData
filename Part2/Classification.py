@@ -64,6 +64,23 @@ attNamesEncoded = [u'Offset']+attNamesEncoded
 M = M+1
 
 
+##### Added later for training of final model with lambda = 10 after selection and error estimation ######
+#Final model on whole data set and extract parameters
+#Fit intercept was set false since offset attribute was added to the datamatrix X_full
+#Otherwise the model has a w0 coef around 0 and another parameter intercept_ which is -2.5
+lambda_final = 10
+log_reg = lm.LogisticRegression(penalty='l2', C=1/lambda_final, max_iter = 300, fit_intercept = False )
+log_reg.fit(X_full, y)
+
+#parameter vector
+w_0 = log_reg.intercept_
+w_vector = log_reg.coef_
+w_full = pd.DataFrame(w_vector.T, index = attNamesEncoded, columns = ['w'])
+w_select = w_full[(w_full['w'] < -0.1) | (w_full['w'] > 0.1)]
+
+##################################################
+
+
 ## Outer Crossvalidation
 # Create crossvalidation partition for evaluation
 random_seed = 3404
@@ -258,6 +275,10 @@ for train_index, test_index in CV_outer.split(X_full,y):
 y_est_full = y_est_full[1:,:]
 #y_est_full = np.concatenate(y_est_full)
 y_true = np.concatenate(y_true)
+
+
+
+
 
 #transfer to dataframe and export as csv
 
