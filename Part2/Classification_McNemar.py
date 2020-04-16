@@ -13,80 +13,56 @@ import sys
 sys.path.insert(1,'..')
 
 from helper import *
-from Classification_models import *
-from Part1.SummaryStatistics import ordinals, nominals
+
 import matplotlib.pyplot as plt
 #import sklearn.linear_model as lm
 #imports for decision tree and graphviz plotting
 from sklearn import model_selection
 
-from toolbox_02450 import train_neural_net, draw_neural_net, visualize_decision_boundary, mcnemar
-import torch
-plt.rcParams.update({'font.size': 12})
+from toolbox_02450 import mcnemar
 
 
+Prediction_ANN_path = 'C:/Users/anjaeh/Desktop/DTU_files/5_Courses/Machine_Learning/Project/Report2/Prediction_ANN.csv'
+Prediction_log_path = 'C:/Users/anjaeh/Desktop/DTU_files/5_Courses/Machine_Learning/Project/Report2/Prediction_log.csv'
+y_true_path = 'C:/Users/anjaeh/Desktop/DTU_files/5_Courses/Machine_Learning/Project/Report2/y_true_log.csv'
+y_true_ANN = 'C:/Users/anjaeh/Desktop/DTU_files/5_Courses/Machine_Learning/Project/Report2/y_true_ANN.csv'
 
-# Load marketing data to get attributes names, a pandas dataframe object and a numpy array
-attNames, marketingData_pd, marketingData_np = loadMarketingData()
-attNamesEncoded, marketingDataEncoded_pd, marketingDataEncoded_np = encodeCategorical(marketingData_pd, ordinals=ordinals, nominals=nominals)
+Prediction_ANN = pd.read_csv(Prediction_ANN_path, sep = ',' )
+Prediction_log = pd.read_csv(Prediction_log_path)
 
+y_true_log = pd.read_csv(y_true_path)
+y_true_ANN = pd.read_csv(y_true_ANN)
 
-#Extract outcome vector y, convert to np
-classLabels = marketingData_np[:,-1] 
-classNames = np.unique(classLabels)
-classDict = dict(zip(classNames,range(len(classNames))))
-y = np.asarray([classDict[value] for value in classLabels])
+print(y_true_log[y_true_log['y_true'] != y_true_ANN['y_true_ANN']])
+print(Prediction_log[Prediction_log['baseline'] != Prediction_ANN['y_base_full']])
+#gives empty data frame --> y_true from log_reg and ANN script are identical
+#the same is true for baseline columns in Prediction_log and Prediction_ANN
 
-# Compute values of C --> number of classes
-C = len(classNames)
+#Make one dataframe with all predictions
+Prediction_log['ANN'] = Prediction_ANN['y_est_ANN']
 
-#full dataset with 1-out-of-K encoded categorial variables
-#drop outcome variable and duration
-drop = ['y', 'duration']
-marketingDataEncoded_pd = marketingDataEncoded_pd.drop(drop, axis = 1)
-marketingDataEncoded_np = marketingDataEncoded_pd.to_numpy()
-
-for d in range(len(drop)):
-    attNamesEncoded.remove(drop[d])
-
-
-N, M = marketingDataEncoded_np.shape
-# Standardize the data
-
-means = marketingDataEncoded_np.mean(axis=0) # get mean of each column
-X_full = marketingDataEncoded_np - np.ones((N,1))*means # Get matrix X by substracting the mean from each value in the marketingdata
-X_full = X_full*(1/np.std(X_full,0)) #Deviding by standard deviation to normalize
-
-N, M = X_full.shape
-
-
-#Set up crossvalidation
-random_seed = 3404
-K = 10
-CV = model_selection.KFold(K,shuffle=True, random_state = random_seed)
-
-
-#Make prediction with selected models
-
-#regression model:
-
-
-#ANN:
-model = lambda: torch.nn.Sequential(
-                    torch.nn.Linear(M, n_hidden_units), #M features to H hiden units
-                    # 1st transfer function, either Tanh or ReLU:
-                    torch.nn.Tanh(),                          
-                    #torch.nn.ReLU(),
-                    #torch.nn.Linear(n_hidden_units, n_hidden_2),
-                    #torch.nn.Tanh(),
-                    torch.nn.Linear(n_hidden_units, 1), # H hidden units to 1 output neuron
-                    torch.nn.Sigmoid() # final tranfer function
-                    )
-
+#Initalize result matrix for McNemar test
+column_names = ['E_theta', 'Confidence Interval', 'p-Value']
+mc_nemar = pd.DataFrame(columns = ['E_theta', 'Confidence Interval', 'p-Value'])
+result_list = [] 
 
 
 # Compute the McNemar test confidence level 0.05
 alpha = 0.05
-[theta_pred, CI, p] = mcnemar(y_true, y_test_est[:,0], y_test_est[:,3], alpha=alpha)
+#Base vs. Log
+result = mcnemar(y_true_log['y_true'], Prediction_log.iloc[:,0], Prediction_log.iloc[:,1], alpha=alpha)
+result_list.append(result)
+#Base vs. ANN
+result = mcnemar(y_true_log['y_true'], Prediction_log.iloc[:,0], Prediction_log.iloc[:,3], alpha=alpha)
+result_list.append(result)
+#log vs. ANN
+result = mcnemar(y_true_log['y_true'], Prediction_log.iloc[:,1], Prediction_log.iloc[:,3], alpha=alpha)
+result_list.append(result)
+#Base vs. log_balanced
+result = mcnemar(y_true_log['y_true'], Prediction_log.iloc[:,0], Prediction_log.iloc[:,2], alpha=alpha)
+result_list.append(result)
 
-print("theta = theta_A-theta_B point estimate", thetahat, " CI: ", CI, "p-value", p)
+mc_nemar = pd.DataFrame(result_list, columns = column_names)
+
+out_path = 'C:/Users/anjaeh/Desktop/DTU_files/5_Courses/Machine_Learning/Project/Report2/mcnemar.csv'
+mc_nemar.to_csv(out_path, index = False)
