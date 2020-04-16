@@ -66,22 +66,24 @@ K = 10
 CV = model_selection.KFold(K,shuffle=True, random_state = random_seed)
 
 # Values of lambda
-hidden_units = np.asarray((2,3,5,7,10,30,60))
-hidden_opt_all = np.empty((K,1))
-hidden_opt_tpr = np.empty((K,1))
-#lambda_opt_lasso = np.empty((K,1))
+#hidden_units = np.asarray((2,3,5,7,10,30,60))
+#hidden_units = np.asarray((1,2))
+#hidden_opt_all = np.empty((K,1))
+#hidden_opt_tpr = np.empty((K,1))
+
+hidden_units = np.asarray((7,5,10,5,5,7,7,7,5,7))
 
 #Initialize errors
 # Final error rates stored for the table
-#Error_train_base = np.empty((K,1))
-#Error_test_base = np.empty((K,1))
-#Error_train_LogReg = np.empty((K,1))
-#Error_test_LogReg = np.empty((K,1))
-Error_test = np.empty((K,3))
-False_Positive_Rate = np.empty((K,3))
-True_Positive_Rate = np.empty((K,3))
+
+Error_test = np.empty((K,2))
+False_Positive_Rate = np.empty((K,2))
+True_Positive_Rate = np.empty((K,2))
 Error_gen_ANN = np.empty((1, len(hidden_units)))
 True_Pos_Gen = np.empty((1, len(hidden_units)))
+
+y_est_full = np.empty((1,2))
+y_true = []
 
 # Make figure for holding summaries (errors and learning curves)
 #summaries, summaries_axes = plt.subplots(1,2, figsize=(10,5))
@@ -95,6 +97,8 @@ True_Pos_Gen = np.empty((1, len(hidden_units)))
 # The lambda-syntax defines an anonymous function, which is used here to 
 # make it easy to make new networks within each cross validation fold
 n_hidden_units = hidden_units[0]
+
+
 model = lambda: torch.nn.Sequential(
                     torch.nn.Linear(M, n_hidden_units), #M features to H hiden units
                     # 1st transfer function, either Tanh or ReLU:
@@ -129,8 +133,9 @@ for k, (train_index, test_index) in enumerate(CV.split(X_full,y)):
     y_train = torch.Tensor(y[train_index] ).squeeze()
     X_test = torch.Tensor(X_full[test_index,:] )
     y_test = torch.Tensor(y[test_index] ).squeeze()
+    y_est_cv_fold = []
     
-    CV_inner = model_selection.KFold(K, shuffle = True, random_state = random_seed)
+    #CV_inner = model_selection.KFold(K, shuffle = True, random_state = random_seed)
     
     #baseline model
     #y_train_est = baseline_classification(y_train, y_train)
@@ -139,70 +144,74 @@ for k, (train_index, test_index) in enumerate(CV.split(X_full,y)):
     #Error_train_base[k] = errorRate(y_train_est, y_train)
     Error_test[k,0], True_Positive_Rate[k,0], False_Positive_Rate[k,0] = errorRate(y_test_est, y_test_np)
     
+    y_est_cv_fold.append(y_test_est)
+    y_true.append(y[test_index])
+    
     
     validation_error_ANN = np.empty((K,len(hidden_units)))
     True_Positive_Val = np.empty((K,len(hidden_units)))
     
-    j = 0
-    for train_inner, test_inner in CV_inner.split(X_train, y_train):
-        print('\nInner Crossvalidation fold: {0}/{1}'.format(j+1,K))
-        # extract training and test set for current CV fold
-        X_train_in = X_train[train_inner]
-        y_train_in = y_train[train_inner]
-        X_test_in = X_train[test_inner]
-        y_test_in = y_train[test_inner]
+    #j = 0
+    #for train_inner, test_inner in CV_inner.split(X_train, y_train):
+    #    print('\nInner Crossvalidation fold: {0}/{1}'.format(j+1,K))
+    #    # extract training and test set for current CV fold
+    #    X_train_in = X_train[train_inner]
+    #    y_train_in = y_train[train_inner]
+    #    X_test_in = X_train[test_inner]
+    #    y_test_in = y_train[test_inner]
                      
         
-        N_val, M_val = X_test_in.shape
+    #    N_val, M_val = X_test_in.shape
     
         # Go to the file 'toolbox_02450.py' in the Tools sub-folder of the toolbox
         # and see how the network is trained (search for 'def train_neural_net',
         # which is the place the function below is defined)
-        for n in range(0, len(hidden_units)):
-            print('\nTraining Model: {0}'.format(n+1))
-            n_hidden_units = hidden_units[n]
-            net, final_loss, learning_curve = train_neural_net(model,
-                                                               loss_fn,
-                                                               X=X_train_in,
-                                                               y=y_train_in,
-                                                               n_replicates=1,
-                                                               max_iter=max_iter)
+    #    for n in range(0, len(hidden_units)):
+    #        print('\nTraining Model: {0}'.format(n+1))
+    #        n_hidden_units = hidden_units[n]
+    #        net, final_loss, learning_curve = train_neural_net(model,
+    #                                                           loss_fn,
+    #                                                           X=X_train_in,
+    #                                                           y=y_train_in,
+    #                                                           n_replicates=1,
+    #                                                           max_iter=max_iter)
             
         
-            print('\n\tBest loss: {}\n'.format(final_loss))
+    #        print('\n\tBest loss: {}\n'.format(final_loss))
         
             # Determine estimated class labels for test set
-            y_sigmoid = net(X_test_in) # activation of final note, i.e. prediction of network
-            y_test_est = (y_sigmoid > .5).type(dtype=torch.uint8).data.numpy().squeeze() # threshold output of sigmoidal function
+    #       y_sigmoid = net(X_test_in) # activation of final note, i.e. prediction of network
+    #        y_test_est = (y_sigmoid > .5).type(dtype=torch.uint8).data.numpy().squeeze() # threshold output of sigmoidal function
             #y_test = y_test.type(dtype=torch.uint8)
             # Determine errors and error rate
             #e = (y_test_est != y_test_in)
             #error_rate = (sum(e).type(torch.float)/len(y_test_in)).data.numpy()
-            y_test_in_np = y_test_in.data.numpy()
-            validation_error_ANN[j,n], True_Positive_Val[j,n], temp2= errorRate(y_test_est, y_test_in_np)
+    #        y_test_in_np = y_test_in.data.numpy()
+    #        validation_error_ANN[j,n], True_Positive_Val[j,n], temp2= errorRate(y_test_est, y_test_in_np)
             
             #errors.append(error_rate) # store error rate for current CV fold 
             
-        j+=1
+    #    j+=1
     ### Back to outer loop for training of selected model and test error estimation ###
     
     #Calculate generelization error for model selection 
-    for n in range(0, len(hidden_units)):
-        Error_gen_ANN[0,n] =  np.mean(validation_error_ANN[:,n])
-        True_Pos_Gen[0,n] = np.mean(True_Positive_Val[:,n])
+    #for n in range(0, len(hidden_units)):
+    #    Error_gen_ANN[0,n] =  np.mean(validation_error_ANN[:,n])
+    #    True_Pos_Gen[0,n] = np.mean(True_Positive_Val[:,n])
     
     
     
     #min_error = np.min(Error_gen_log)
     #opt_lambda_idx = np.argmin(Error_gen_log)
-    hidden_opt_all[k,0] = hidden_units[np.argmin(Error_gen_ANN)]
+    #hidden_opt_all[k,0] = hidden_units[np.argmin(Error_gen_ANN)]
     
     #Select via true positive rate
-    hidden_opt_tpr[k,0] = hidden_units[np.argmax(True_Pos_Gen)]
+    #hidden_opt_tpr[k,0] = hidden_units[np.argmax(True_Pos_Gen)]
     
     #Train ANN model with selected hidden units on outer training data loop
     print('Training selected model')
-    n_hidden_units = hidden_opt_all[k,0].astype(int)
+    n_hidden_units = hidden_units[k]
+    #n_hidden_units = hidden_opt_all[k,0].astype(int)
     net, final_loss, learning_curve = train_neural_net(model,
                                                        loss_fn,
                                                        X=X_train,
@@ -213,36 +222,44 @@ for k, (train_index, test_index) in enumerate(CV.split(X_full,y)):
     # Determine estimated class labels for test set
     y_sigmoid = net(X_test) # activation of final note, i.e. prediction of network
     y_test_est = (y_sigmoid > .5).type(dtype=torch.uint8).data.numpy().squeeze() # threshold output of sigmoidal function
-    #y_test = y_test.type(dtype=torch.uint8)
-    # Determine errors and error rate
-    #e = (y_test_est != y_test)
-    #error_rate = (sum(e).type(torch.float)/len(y_test)).data.numpy()
-    #Error_test[k,1] = error_rate
+    
+    
     y_test_np = y_test.data.numpy()
     Error_test[k,1], True_Positive_Rate[k,1], False_Positive_Rate[k,1] = errorRate(y_test_est, y_test_np)
     
+    y_est_cv_fold.append(y_test_est)
+    
+    #treat estimations from the two models (baseline and ANN) as columns 
+    y_est_cv_fold = np.stack(y_est_cv_fold, axis=1)
+    #add the estimations for all models from this cv to the full list
+    
+    y_est_full = np.concatenate((y_est_full, y_est_cv_fold), axis = 0)
+    
     
     #Train ANN model with selected hidden units via true positive rate
-    n_hidden_units = hidden_opt_tpr[k,0].astype(int)
-    net, final_loss, learning_curve = train_neural_net(model,
-                                                       loss_fn,
-                                                       X=X_train,
-                                                       y=y_train,
-                                                       n_replicates=1,
-                                                       max_iter=max_iter)
+    #n_hidden_units = hidden_opt_tpr[k,0].astype(int)
+    #net, final_loss, learning_curve = train_neural_net(model,
+    #                                                   loss_fn,
+    #                                                   X=X_train,
+    #                                                   y=y_train,
+    #                                                   n_replicates=1,
+    #                                                   max_iter=max_iter)
     
     # Determine estimated class labels for test set
-    y_sigmoid = net(X_test) # activation of final note, i.e. prediction of network
-    y_test_est = (y_sigmoid > .5).type(dtype=torch.uint8).data.numpy().squeeze() # threshold output of sigmoidal function
+    #y_sigmoid = net(X_test) # activation of final note, i.e. prediction of network
+    #y_test_est = (y_sigmoid > .5).type(dtype=torch.uint8).data.numpy().squeeze() # threshold output of sigmoidal function
     #y_test = y_test.type(dtype=torch.uint8)
     # Determine errors and error rate
     #e = (y_test_est != y_test)
     #error_rate = (sum(e).type(torch.float)/len(y_test)).data.numpy()
     #Error_test[k,1] = error_rate
-    y_test_np = y_test.data.numpy()
-    Error_test[k,2], True_Positive_Rate[k,2], False_Positive_Rate[k,2] = errorRate(y_test_est, y_test_np)
+    #y_test_np = y_test.data.numpy()
+    #Error_test[k,2], True_Positive_Rate[k,2], False_Positive_Rate[k,2] = errorRate(y_test_est, y_test_np)
 #y_test_np = y_test.data.numpy()
 #y_test_est_np = y_test_est.data.numpy().squeeze()
 
 #Error_test, True_Positive, False_Positive = errorRate(y_test_est_np, y_test_np)
     
+y_est_full = y_est_full[1:,:]
+
+y_true = np.concatenate(y_true)
