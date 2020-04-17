@@ -60,7 +60,7 @@ y = marketingDataEncoded_np_std[:,attToPredictId]
 
 # Split dataset into training and test set
 #testSize = 0.1 # 10% of the dataset will be taken out at random for testing only
-#X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=testSize, random_state=42)
+X, _, y, _ = train_test_split(X, y, test_size=0.7, random_state=42)
 
 lamdas = np.logspace(-5, 3, num=20)
 
@@ -111,12 +111,12 @@ for train_index, test_index in CV_outer.split(X,y):
 
 
         # Train ANN model
-        hs = [1, 2, 3]
+        hs = [1, 2, 3, 4, 5]
         train_errors = list()
         test_errors = list()
         for h in hs:
-            print(f"Fitting for h={h}")
-            annmodel = nn.MLPRegressor(hidden_layer_sizes=tuple([20] * h))
+            #print(f"Fitting for h={h}")
+            annmodel = nn.MLPRegressor(hidden_layer_sizes=tuple([h]))
             annmodel = annmodel.fit(X_train, y_train)
             train_errors.append(annmodel.score(X_train, y_train))
             test_errors.append(annmodel.score(X_test, y_test))
