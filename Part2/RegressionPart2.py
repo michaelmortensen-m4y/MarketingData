@@ -7,6 +7,7 @@ import sklearn.linear_model as lm
 import sklearn.neural_network as nn
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn import model_selection
 
 # Load marketing data to get attributes names, a pandas dataframe object and a numpy array
 attNames, marketingData_pd, marketingData_np = loadMarketingData()
@@ -58,34 +59,71 @@ X = marketingDataEncoded_np_std[:,attIdsForModel]
 y = marketingDataEncoded_np_std[:,attToPredictId]
 
 # Split dataset into training and test set
-testSize = 0.1 # 10% of the dataset will be taken out at random for testing only
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=testSize, random_state=42)
+#testSize = 0.1 # 10% of the dataset will be taken out at random for testing only
+#X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=testSize, random_state=42)
 
-print("\nComputing linear regression model:")
-
-# Fit linear regression model
-#model = lm.LinearRegression()
-#model = model.fit(X_train, y_train)
-#print(model.score(X_train, y_train))
-#print(model.score(X_test, y_test))
-
-# Fit regularized linear ElasticNet regression model with optimal lamda
-lamda = 0.0012742749857031334
-train_errors = list()
-test_errors = list()
-print(f"Fitting for lamda={lamda}")
-regmodel = lm.ElasticNet(alpha=lamda, max_iter=1000, l1_ratio=0.5)
-regmodel = regmodel.fit(X_train, y_train)
-
-# Basemodel as mean
-basemodel = y_train.mean()
-
-# ANN
-h = 1
-print(f"Fitting ANN with h = {h}")
-annmodel = nn.MLPRegressor(hidden_layer_sizes=tuple([100]*h))
-annmodel = annmodel.fit(X_train, y_train)
+lamdas = np.logspace(-5, 3, num=20)
 
 # 2-level crossvalidation
+K = 5
+CV_outer = model_selection.KFold(K, shuffle=True, random_state = 42)
+
+k=0
+for train_index, test_index in CV_outer.split(X,y):
+    print('\nCrossvalidation fold: {0}/{1}'.format(k + 1, K))
+    k += 1
+
+    # extract training and test set for current CV fold
+    X_train = X[train_index]
+    y_train = y[train_index]
+    X_test = X[test_index]
+    y_test = y[test_index]
+    N_par, M_par = X_train.shape
+    CV_inner = model_selection.KFold(K, shuffle=True, random_state = 42)
+
+    j=0
+    for train_inner, test_inner in CV_inner.split(X_train, y_train):
+
+        # extract training and test set for current CV fold
+        print('\nInner Crossvalidation fold: {0}/{1}'.format(j + 1, K))
+        X_train_in = X_train[train_inner]
+        y_train_in = y_train[train_inner]
+        X_test_in = X_train[test_inner]
+        y_test_in = y_train[test_inner]
+        j += 1
+
+        # Train linear model
+        train_errors = list()
+        test_errors = list()
+        for lamda in lamdas:
+            #print(f"Fitting for lamda={lamda}")
+            regmodel = lm.ElasticNet(alpha=lamda, max_iter=1000, l1_ratio=0.5)
+            regmodel = regmodel.fit(X_train, y_train)
+            train_errors.append(regmodel.score(X_train, y_train))
+            test_errors.append(regmodel.score(X_test, y_test))
+
+        i_alpha_optim = np.argmax(test_errors)
+        alpha_optim = lamdas[i_alpha_optim]
+        bestscore = test_errors[i_alpha_optim]
+
+        print(f"Best lamda: {alpha_optim}")
+        print(f"Best score: {bestscore}")
 
 
+        # Train ANN model
+        hs = [1, 2, 3]
+        train_errors = list()
+        test_errors = list()
+        for h in hs:
+            print(f"Fitting for h={h}")
+            annmodel = nn.MLPRegressor(hidden_layer_sizes=tuple([20] * h))
+            annmodel = annmodel.fit(X_train, y_train)
+            train_errors.append(annmodel.score(X_train, y_train))
+            test_errors.append(annmodel.score(X_test, y_test))
+
+        i_h_optim = np.argmax(test_errors)
+        h_optim = hs[i_h_optim]
+        bestscore = test_errors[i_h_optim]
+
+        print(f"Best h: {h_optim}")
+        print(f"Best score: {bestscore}")
