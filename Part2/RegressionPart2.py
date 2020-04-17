@@ -4,6 +4,7 @@
 from helper import *
 from sklearn.model_selection import train_test_split
 import sklearn.linear_model as lm
+import sklearn.neural_network as nn
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -63,39 +64,28 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=testSize, ra
 print("\nComputing linear regression model:")
 
 # Fit linear regression model
-model = lm.LinearRegression()
-model = model.fit(X_train, y_train)
-print(model.score(X_train, y_train))
-print(model.score(X_test, y_test))
+#model = lm.LinearRegression()
+#model = model.fit(X_train, y_train)
+#print(model.score(X_train, y_train))
+#print(model.score(X_test, y_test))
 
-# Fit regularized linear ElasticNet regression model
-lamdas = np.logspace(-5, 3, num=20)
-print(lamdas)
+# Fit regularized linear ElasticNet regression model with optimal lamda
+lamda = 0.0012742749857031334
 train_errors = list()
 test_errors = list()
-for lamda in lamdas:
-    print(f"Fitting for lamda={lamda}")
-    model = lm.ElasticNet(alpha=lamda, max_iter=1000, l1_ratio=0.5)
-    model = model.fit(X_train, y_train)
-    train_errors.append(model.score(X_train, y_train))
-    test_errors.append(model.score(X_test, y_test))
-    print(model.score(X_test, y_test))
+print(f"Fitting for lamda={lamda}")
+regmodel = lm.ElasticNet(alpha=lamda, max_iter=1000, l1_ratio=0.5)
+regmodel = regmodel.fit(X_train, y_train)
 
-i_alpha_optim = np.argmax(test_errors)
-alpha_optim = lamdas[i_alpha_optim]
+# Basemodel as mean
+basemodel = y_train.mean()
 
-#plt.semilogx(lamdas, train_errors, label='Train')
-plt.semilogx(lamdas, test_errors, label='Error')
-plt.legend()
-plt.xlabel('Regularization parameter')
-plt.ylabel('Performance')
-plt.title(f"[{attToPredictName}] Optimal lambda: {str(alpha_optim)[0:10]}")
-print(f"[{attToPredictName}] Optimal lambda: {alpha_optim}")
+# ANN
+h = 1
+print(f"Fitting ANN with h = {h}")
+annmodel = nn.MLPRegressor(hidden_layer_sizes=tuple([100]*h))
+annmodel = annmodel.fit(X_train, y_train)
 
-plt.show()
+# 2-level crossvalidation
 
-# Try to predict on the test set
-#y_predicted = model.predict(X_test)
 
-#for y_idx, y_p in enumerate(y_predicted):
-#    print(f"Predicted {y_p} where true value is {y_test[y_idx]}")
